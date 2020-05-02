@@ -11,8 +11,10 @@ from __future__ import print_function
 import collections
 import os
 import pickle
-from absl import flags, logging
-from bert import modeling
+from absl import app
+from absl import flags
+from absl import logging
+# from bert import modeling
 from official.nlp import optimization
 from official.nlp.bert import tokenization
 import tensorflow as tf
@@ -501,8 +503,8 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
         is_training = (mode == tf.estimator.ModeKeys.TRAIN)
         if FLAGS.crf:
             (total_loss, logits, predicts) = create_model(bert_config, is_training, input_ids,
-                                                         mask, segment_ids, label_ids, num_labels,
-                                                         use_one_hot_embeddings)
+                                                          mask, segment_ids, label_ids, num_labels,
+                                                          use_one_hot_embeddings)
         else:
             (total_loss, logits, predicts) = create_model(bert_config, is_training, input_ids,
                                                           mask, segment_ids, label_ids, num_labels,
@@ -591,12 +593,12 @@ def main(_):
     processors = {"ner": NerProcessor}
     if not FLAGS.do_train and not FLAGS.do_eval:
         raise ValueError("At least one of `do_train` or `do_eval` must be True.")
-    bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
-    if FLAGS.max_seq_length > bert_config.max_position_embeddings:
-        raise ValueError(
-            "Cannot use sequence length %d because the BERT model "
-            "was only trained up to sequence length %d" %
-            (FLAGS.max_seq_length, bert_config.max_position_embeddings))
+    # bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
+    # if FLAGS.max_seq_length > bert_config.max_position_embeddings:
+    #     raise ValueError(
+    #         "Cannot use sequence length %d because the BERT model "
+    #         "was only trained up to sequence length %d" %
+    #         (FLAGS.max_seq_length, bert_config.max_position_embeddings))
     task_name = FLAGS.task_name.lower()
     if task_name not in processors:
         raise ValueError("Task not found: %s" % (task_name))
@@ -725,5 +727,5 @@ if __name__ == "__main__":
     flags.mark_flag_as_required("vocab_file")
     flags.mark_flag_as_required("bert_config_file")
     flags.mark_flag_as_required("output_dir")
-    tf.app.run()
+    app.run(main)
 

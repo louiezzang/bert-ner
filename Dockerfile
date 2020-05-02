@@ -1,9 +1,10 @@
 FROM python:3.7
 
+RUN pip install --upgrade pip
 
 # Install required packages
 RUN pip install -U \
-    tf-nightly>=2.2.0.dev20200427 \
+    tf-nightly \
     tf-models-nightly \
     tensorflow-addons
 
