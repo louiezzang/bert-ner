@@ -6,6 +6,8 @@ import json
 import os
 
 import tensorflow as tf
+import nltk
+nltk.download('punkt')
 from nltk import word_tokenize
 
 from bert_ner import BertNer
@@ -37,7 +39,7 @@ class Ner:
         words = word_tokenize(text)
         tokens = []
         valid_positions = []
-        for i,word in enumerate(words):
+        for i, word in enumerate(words):
             token = self.tokenizer.tokenize(word)
             tokens.extend(token)
             for i in range(len(token)):
