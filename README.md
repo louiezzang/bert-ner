@@ -9,10 +9,11 @@ Download Pretrained Models from Tensorflow offical models
 * [bert-large-cased](https://storage.googleapis.com/cloud-tpu-checkpoints/bert/tf_20/cased_L-24_H-1024_A-16.tar.gz) unzip into `cased_L-24_H-1024_A-16`
 
 ### Run on Google Colab
+See [bert_ner_colab.ipynb](https://github.com/louiezzang/bert-ner/blob/master/bert_ner_colab.ipynb)
 
-Prevent Google Colab from disconnecting:
-https://stackoverflow.com/questions/57113226/how-to-prevent-google-colab-from-disconnecting
-https://bryan7.tistory.com/1077
+How to prevent Google Colab from disconnecting:
+* https://stackoverflow.com/questions/57113226/how-to-prevent-google-colab-from-disconnecting
+* https://bryan7.tistory.com/1077
 ```js
 function ClickConnect() {
     var buttons = document.querySelectorAll("colab-dialog.yes-no-dialog paper-button#cancel");
