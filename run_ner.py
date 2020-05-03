@@ -12,7 +12,8 @@ import sys
 
 import numpy as np
 import tensorflow as tf
-from fastprogress import master_bar, progress_bar
+# from fastprogress import master_bar, progress_bar
+from fastprogress import force_console_behavior
 from seqeval.metrics import classification_report
 
 from bert_ner import BertNer
@@ -25,6 +26,8 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
 logger = logging.getLogger(__name__)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
+master_bar, progress_bar = force_console_behavior()
 
 
 class InputExample(object):
@@ -458,7 +461,7 @@ def main():
         
         eval_features = convert_examples_to_features(
             eval_examples, label_list, args.max_seq_length, tokenizer)
-        logger.info("***** Running evalution *****")
+        logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(eval_examples))
         logger.info("  Batch size = %d", args.eval_batch_size)
 
