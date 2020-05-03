@@ -3,4 +3,4 @@ tf-nightly
 #tensorflow-addons
 seqeval==0.0.5
 nltk==3.4.5
-fastprogress==0.1.21
+fastprogress==0.2.3
