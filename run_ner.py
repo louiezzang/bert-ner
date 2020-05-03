@@ -293,15 +293,15 @@ def main():
                         type=int,
                         default=42,
                         help="random seed for initialization")
-    # training stratergy arguments
+    # Training strategy arguments
     parser.add_argument("--multi_gpu",
                         action='store_true',
                         help="Set this flag to enable multi-gpu training using MirroredStrategy."
                              "Single gpu training")
-    parser.add_argument("--gpus",default='0',type=str,
+    parser.add_argument("--gpus", default='0', type=str,
                         help="Comma separated list of gpus devices."
-                              "For Single gpu pass the gpu id.Default '0' GPU"
-                              "For Multi gpu,if gpus not specified all the available gpus will be used")
+                             "For Single gpu pass the gpu id.Default '0' GPU"
+                             "For Multi gpu,if gpus not specified all the available gpus will be used")
 
     args = parser.parse_args()
 
@@ -325,7 +325,8 @@ def main():
             strategy = tf.distribute.MirroredStrategy(devices=gpus)
     else:
         gpu = args.gpus.split(',')[0]
-        strategy = tf.distribute.OneDeviceStrategy(device=f"/gpu:{gpu}")
+        # strategy = tf.distribute.OneDeviceStrategy(device=f"/gpu:{gpu}")
+        strategy = tf.distribute.OneDeviceStrategy(device="/cpu:0")
 
     train_examples = None
     optimizer = None
@@ -338,11 +339,12 @@ def main():
         warmup_steps = int(args.warmup_proportion *
                            num_train_optimization_steps)
         learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=args.learning_rate,
-                                                decay_steps=num_train_optimization_steps,end_learning_rate=0.0)
+                                                                         decay_steps=num_train_optimization_steps,
+                                                                         end_learning_rate=0.0)
         if warmup_steps:
             learning_rate_fn = WarmUp(initial_learning_rate=args.learning_rate,
-                                    decay_schedule_fn=learning_rate_fn,
-                                    warmup_steps=warmup_steps)
+                                      decay_schedule_fn=learning_rate_fn,
+                                      warmup_steps=warmup_steps)
         optimizer = AdamWeightDecay(
             learning_rate=learning_rate_fn,
             weight_decay_rate=args.weight_decay,
@@ -398,12 +400,12 @@ def main():
             def step_fn(input_ids, input_mask, segment_ids, valid_ids, label_ids,label_mask):
 
                 with tf.GradientTape() as tape:
-                    logits = ner(input_ids, input_mask,segment_ids, valid_ids, training=True)
-                    label_mask = tf.reshape(label_mask,(-1,))
-                    logits = tf.reshape(logits,(-1,num_labels))
-                    logits_masked = tf.boolean_mask(logits,label_mask)
-                    label_ids = tf.reshape(label_ids,(-1,))
-                    label_ids_masked = tf.boolean_mask(label_ids,label_mask)
+                    logits = ner(input_ids, input_mask, segment_ids, valid_ids, training=True)
+                    label_mask = tf.reshape(label_mask, (-1,))
+                    logits = tf.reshape(logits, (-1, num_labels))
+                    logits_masked = tf.boolean_mask(logits, label_mask)
+                    label_ids = tf.reshape(label_ids, (-1,))
+                    label_ids_masked = tf.boolean_mask(label_ids, label_mask)
                     cross_entropy = loss_fct(label_ids_masked, logits_masked)
                     loss = tf.reduce_sum(cross_entropy) * (1.0 / args.train_batch_size)
                 grads = tape.gradient(loss, ner.trainable_variables)
@@ -411,39 +413,42 @@ def main():
                 return cross_entropy
 
             per_example_losses = strategy.experimental_run_v2(step_fn,
-                                     args=(input_ids, input_mask, segment_ids, valid_ids, label_ids,label_mask))
+                                                              args=(
+                                                                  input_ids, input_mask, segment_ids, valid_ids,
+                                                                  label_ids,
+                                                                  label_mask))
             mean_loss = strategy.reduce(tf.distribute.ReduceOp.MEAN, per_example_losses, axis=0)
             return mean_loss
 
         for epoch in epoch_bar:
             with strategy.scope():
-                for (input_ids, input_mask, segment_ids, valid_ids, label_ids,label_mask) in progress_bar(dist_dataset, total=pb_max_len, parent=epoch_bar):
-                    loss = train_step(input_ids, input_mask, segment_ids, valid_ids, label_ids,label_mask)
+                for (input_ids, input_mask, segment_ids, valid_ids, label_ids, label_mask) in progress_bar(dist_dataset, total=pb_max_len, parent=epoch_bar):
+                    loss = train_step(input_ids, input_mask, segment_ids, valid_ids, label_ids, label_mask)
                     loss_metric(loss)
                     epoch_bar.child.comment = f'loss : {loss_metric.result()}'
             loss_metric.reset_states()
         
         # model weight save 
-        ner.save_weights(os.path.join(args.output_dir,"model.h5"))
+        ner.save_weights(os.path.join(args.output_dir, "model.h5"))
         # copy vocab to output_dir
-        shutil.copyfile(os.path.join(args.bert_model,"vocab.txt"),os.path.join(args.output_dir,"vocab.txt"))
+        shutil.copyfile(os.path.join(args.bert_model, "vocab.txt"), os.path.join(args.output_dir, "vocab.txt"))
         # copy bert config to output_dir
-        shutil.copyfile(os.path.join(args.bert_model,"bert_config.json"),os.path.join(args.output_dir,"bert_config.json"))
+        shutil.copyfile(os.path.join(args.bert_model, "bert_config.json"), os.path.join(args.output_dir, "bert_config.json"))
         # save label_map and max_seq_length of trained model
-        model_config = {"bert_model":args.bert_model,"do_lower":args.do_lower_case,
-                        "max_seq_length":args.max_seq_length,"num_labels":num_labels,
-                        "label_map":label_map}
-        json.dump(model_config,open(os.path.join(args.output_dir,"model_config.json"),"w"),indent=4)
+        model_config = {"bert_model": args.bert_model, "do_lower": args.do_lower_case,
+                        "max_seq_length": args.max_seq_length, "num_labels": num_labels,
+                        "label_map": label_map}
+        json.dump(model_config, open(os.path.join(args.output_dir, "model_config.json"), "w"), indent=4)
 
     if args.do_eval:
         # load tokenizer
         tokenizer = FullTokenizer(os.path.join(args.output_dir, "vocab.txt"), args.do_lower_case)
         # model build hack : fix
-        config = json.load(open(os.path.join(args.output_dir,"bert_config.json")))
+        config = json.load(open(os.path.join(args.output_dir, "bert_config.json")))
         ner = BertNer(config, tf.float32, num_labels, args.max_seq_length)
-        ids = tf.ones((1,128),dtype=tf.int64)
-        _ = ner(ids,ids,ids,ids, training=False)
-        ner.load_weights(os.path.join(args.output_dir,"model.h5"))
+        ids = tf.ones((1, 128), dtype=tf.int64)
+        _ = ner(ids, ids, ids, ids, training=False)
+        ner.load_weights(os.path.join(args.output_dir, "model.h5"))
 
         # load test or development set based on argsK
         if args.eval_on == "dev":
@@ -480,12 +485,12 @@ def main():
 
         y_true = []
         y_pred = []
-        label_map = {i : label for i, label in enumerate(label_list,1)}
+        label_map = {i: label for i, label in enumerate(label_list, 1)}
         for epoch in epoch_bar:
             for (input_ids, input_mask, segment_ids, valid_ids, label_ids) in progress_bar(batched_eval_data, total=pb_max_len, parent=epoch_bar):
                     logits = ner(input_ids, input_mask,
                                  segment_ids, valid_ids, training=False)
-                    logits = tf.argmax(logits,axis=2)
+                    logits = tf.argmax(logits, axis=2)
                     for i, label in enumerate(label_ids):
                         temp_1 = []
                         temp_2 = []
@@ -499,7 +504,7 @@ def main():
                             else:
                                 temp_1.append(label_map[label_ids[i][j].numpy()])
                                 temp_2.append(label_map[logits[i][j].numpy()])
-        report = classification_report(y_true, y_pred,digits=4)       
+        report = classification_report(y_true, y_pred, digits=4)
         output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results *****")
