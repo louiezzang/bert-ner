@@ -426,7 +426,7 @@ def main():
                     loss = train_step(input_ids, input_mask, segment_ids, valid_ids, label_ids, label_mask)
                     loss_metric(loss)
                     epoch_bar.child.comment = f'loss : {loss_metric.result()}'
-                    print(f'loss : {loss_metric.result()}')
+            epoch_bar.write(f'Finished epoch {epoch}.')
             loss_metric.reset_states()
         
         # model weight save 
@@ -495,7 +495,7 @@ def main():
                     for i, label in enumerate(label_ids):
                         temp_1 = []
                         temp_2 = []
-                        for j,m in enumerate(label):
+                        for j, m in enumerate(label):
                             if j == 0:
                                 continue
                             elif label_ids[i][j].numpy() == len(label_map):
