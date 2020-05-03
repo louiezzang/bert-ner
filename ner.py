@@ -6,8 +6,6 @@ import json
 import os
 
 import tensorflow as tf
-import nltk
-nltk.download('punkt')
 from nltk import word_tokenize
 
 from bert_ner import BertNer
