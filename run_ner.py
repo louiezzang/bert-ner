@@ -334,8 +334,7 @@ def main():
     ner = None
     if args.do_train:
         train_examples = processor.get_train_examples(args.data_dir)
-        num_train_optimization_steps = int(
-            len(train_examples) / args.train_batch_size) * args.num_train_epochs
+        num_train_optimization_steps = int(len(train_examples) / args.train_batch_size) * args.num_train_epochs
         warmup_steps = int(args.warmup_proportion *
                            num_train_optimization_steps)
         learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=args.learning_rate,
@@ -393,8 +392,7 @@ def main():
         loss_metric = tf.keras.metrics.Mean()
 
         epoch_bar = master_bar(range(args.num_train_epochs))
-        pb_max_len = math.ceil(
-            float(len(train_features))/float(args.train_batch_size))
+        pb_max_len = math.ceil(float(len(train_features))/float(args.train_batch_size))
 
         def train_step(input_ids, input_mask, segment_ids, valid_ids, label_ids,label_mask):
             def step_fn(input_ids, input_mask, segment_ids, valid_ids, label_ids,label_mask):
@@ -422,11 +420,14 @@ def main():
 
         for epoch in epoch_bar:
             with strategy.scope():
+                step = 1
                 for (input_ids, input_mask, segment_ids, valid_ids, label_ids, label_mask) in progress_bar(dist_dataset, total=pb_max_len, parent=epoch_bar):
                     loss = train_step(input_ids, input_mask, segment_ids, valid_ids, label_ids, label_mask)
                     loss_metric(loss)
-                    epoch_bar.child.comment = f'loss : {loss_metric.result()}'
-            epoch_bar.write(f'Finished epoch {epoch}.')
+                    # epoch_bar.child.comment = f'loss : {loss_metric.result()}'
+                    logger.info(f'Iteration: {step}/{pb_max_len} Epoch: {epoch}, loss: {loss_metric.result()}')
+                    step += 1
+            logger.info(f'Finished epoch {epoch}.')
             loss_metric.reset_states()
         
         # model weight save 
@@ -457,8 +458,7 @@ def main():
         elif args.eval_on == "test":
             eval_examples = processor.get_test_examples(args.data_dir)
         
-        eval_features = convert_examples_to_features(
-            eval_examples, label_list, args.max_seq_length, tokenizer)
+        eval_features = convert_examples_to_features(eval_examples, label_list, args.max_seq_length, tokenizer)
         logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(eval_examples))
         logger.info("  Batch size = %d", args.eval_batch_size)
